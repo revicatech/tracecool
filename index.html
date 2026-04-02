@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRACECOOL - Engineered with Confidence</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Leaflet map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- GSAP + ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary:   '#1A1A1A',
+                        secondary: '#666666',
+                        accent:    '#2563EB',
+                        surface:   '#F9F9F9',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root { --accent: #2563EB; --primary: #1A1A1A; }
+
+        /* ── Pill Nav ──────────────────────────────── */
+        .glass-nav {
+            background: rgba(10,12,22,0.42);
+            backdrop-filter: blur(28px) saturate(160%);
+            -webkit-backdrop-filter: blur(28px) saturate(160%);
+            border: 1px solid rgba(255,255,255,0.13);
+            border-radius: 9999px;
+            box-shadow: 0 4px 32px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08);
+            transition: background 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+        }
+        .glass-nav.scrolled {
+            background: rgba(14,14,24,0.86);
+            border-color: rgba(255,255,255,0.07);
+            box-shadow: 0 8px 48px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        /* Mobile dropdown card (not pill) */
+        #mobile-menu {
+            background: rgba(12,13,22,0.94);
+            backdrop-filter: blur(28px) saturate(160%);
+            -webkit-backdrop-filter: blur(28px) saturate(160%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+        }
+
+        /* ── Loader ──────────────────────────────────── */
+        #loader {
+            position: fixed; inset: 0; background: #1A1A1A;
+            z-index: 99999; display: flex; align-items: center;
+            justify-content: center; flex-direction: column;
+        }
+        #loader-logo { color: white; font-size: 1.75rem; font-weight: 600; letter-spacing: 0.15em; }
+        #loader-sub  { color: rgba(255,255,255,0.4); font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; margin-top: 4px; }
+        #loader-bar  { width: 180px; height: 2px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 24px; }
+        #loader-progress { height: 100%; background: #2563EB; width: 0; border-radius: 2px; }
+
+        /* ── Custom cursor ───────────────────────────── */
+        #cursor {
+            width: 8px; height: 8px; background: #2563EB; border-radius: 50%;
+            position: fixed; pointer-events: none; z-index: 9998;
+            transform: translate(-50%,-50%);
+        }
+        #cursor-ring {
+            width: 32px; height: 32px; border: 1.5px solid rgba(37,99,235,0.5);
+            border-radius: 50%; position: fixed; pointer-events: none; z-index: 9997;
+            transform: translate(-50%,-50%);
+            transition: width .25s, height .25s, border-color .25s;
+        }
+
+        /* ── Hero ───────────────────────────────────── */
+        .hero-bg {
+            background: linear-gradient(160deg,rgba(0,0,0,0.25) 0%,rgba(0,18,28,0.72) 100%),
+                url('https://images.unsplash.com/photo-1621905251189-08b45d6a269e?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80') center/cover no-repeat;
+        }
+        .split-line  { overflow: hidden; display: block; }
+        .split-inner { display: block; transform: translateY(100%); }
+
+        /* ── Marquee ─────────────────────────────────── */
+        .marquee-outer  { overflow: hidden; }
+        .marquee-track  { display: flex; width: max-content; animation: ticker 28s linear infinite; }
+        .marquee-track:hover { animation-play-state: paused; }
+        @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        .marquee-item   { display: inline-flex; align-items: center; gap: 28px; padding: 0 28px; font-size: .7rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; white-space: nowrap; }
+        .marquee-dot    { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .5; }
+
+        /* ── Form ────────────────────────────────────── */
+        .form-input {
+            width: 100%; background: transparent; border: none;
+            border-bottom: 1px solid #E5E7EB; padding: .75rem 0;
+            color: #1A1A1A; transition: border-color .3s ease;
+            font-family: 'Inter',sans-serif; font-size: .875rem;
+        }
+        .form-input:focus { outline: none; border-bottom-color: #2563EB; }
+        .form-input::placeholder { color: #9CA3AF; }
+
+        /* ── Checkbox ────────────────────────────────── */
+        .custom-checkbox {
+            appearance: none; width: 24px; height: 24px; border-radius: 50%;
+            background-color: #1A1A1A; cursor: pointer; position: relative; flex-shrink: 0;
+        }
+        .custom-checkbox:checked::after {
+            content: '✓'; color: white; font-size: 13px;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+        }
+
+        /* ── Pill button ─────────────────────────────── */
+        .pill-btn {
+            display: inline-flex; align-items: center; gap: 1rem;
+            border-radius: 9999px; border: 1px solid;
+            padding: .5rem .375rem .5rem 1.5rem; transition: background .25s ease;
+        }
+
+        /* ── Section label ───────────────────────────── */
+        .section-label {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: .8rem; font-weight: 500; letter-spacing: .05em; color: #666;
+        }
+        .section-label::before {
+            content: ''; width: 7px; height: 7px; border-radius: 50%;
+            background: #2563EB; display: block;
+        }
+        .section-label.light { color: rgba(255,255,255,0.5); }
+        .section-label.light::before { background: #2563EB; }
+
+        /* ── Product card ────────────────────────────── */
+        .prod-card { background: #1A1A1A; border-radius: 2px; overflow: hidden; }
+        .prod-card-img { overflow: hidden; }
+        .prod-card-img img {
+            width: 100%; height: 220px; object-fit: cover;
+            transition: transform .7s cubic-bezier(.34,1.56,.64,1);
+        }
+        .prod-card:hover .prod-card-img img { transform: scale(1.06); }
+
+        /* ── Service card (existing) ─────────────────── */
+        .svc-card  { will-change: transform; }
+        .svc-card img { transition: transform .7s cubic-bezier(.34,1.56,.64,1); }
+        .svc-card:hover img { transform: scale(1.04); }
+
+        /* ── Process step ────────────────────────────── */
+        .process-step { position: relative; }
+        .process-step:not(:last-child)::after {
+            content: '';
+            position: absolute; top: 20px; left: calc(100% + 0px);
+            width: calc(100% - 40px); height: 1px;
+            background: linear-gradient(to right, #E5E7EB, transparent);
+        }
+        @media (max-width: 768px) { .process-step::after { display: none; } }
+
+        /* ── Project card ────────────────────────────── */
+        .proj-card { overflow: hidden; position: relative; }
+        .proj-card img { transition: transform .8s cubic-bezier(.34,1.56,.64,1); }
+        .proj-card:hover img { transform: scale(1.06); }
+        .proj-card-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top,rgba(26,26,26,.75) 0%,transparent 60%);
+            opacity: 0; transition: opacity .4s ease;
+        }
+        .proj-card:hover .proj-card-overlay { opacity: 1; }
+        .proj-card-label {
+            position: absolute; bottom: 0; left: 0; right: 0; padding: 1.5rem;
+            color: white; transform: translateY(12px); opacity: 0;
+            transition: transform .4s cubic-bezier(.34,1.56,.64,1), opacity .4s ease;
+        }
+        .proj-card:hover .proj-card-label { transform: translateY(0); opacity: 1; }
+
+        /* ── Leaflet map overrides ───────────────────── */
+        .leaflet-container { background: #111 !important; }
+        .leaflet-control-attribution {
+            background: rgba(0,0,0,0.6) !important; color: rgba(255,255,255,0.4) !important;
+            font-size: 9px !important;
+        }
+        .leaflet-control-attribution a { color: rgba(255,255,255,0.5) !important; }
+        .leaflet-control-zoom a {
+            background: #1A1A1A !important; color: #2563EB !important;
+            border-color: rgba(255,255,255,0.1) !important;
+        }
+        .leaflet-control-zoom a:hover { background: #2a2a2a !important; }
+        .leaflet-popup-content-wrapper {
+            background: #1A1A1A !important; color: white !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 4px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+        }
+        .leaflet-popup-tip { background: #1A1A1A !important; }
+        .leaflet-popup-content { margin: 14px 18px !important; }
+
+        /* ── Map marker ──────────────────────────────── */
+        @keyframes pulse-ring {
+            0%   { transform: translate(-50%,-50%) scale(1);   opacity: .6; }
+            100% { transform: translate(-50%,-50%) scale(2.4); opacity: 0; }
+        }
+        .tc-dot {
+            width: 10px; height: 10px; background: #2563EB; border-radius: 50%;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+        }
+        .tc-ring {
+            width: 10px; height: 10px; border: 2px solid #2563EB; border-radius: 50%;
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            animation: pulse-ring 2s ease-out infinite;
+        }
+        .tc-marker-wrap { position: relative; width: 20px; height: 20px; }
+
+        /* ── Branch card ─────────────────────────────── */
+        .branch-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 2px; padding: 1.25rem 1.5rem;
+            cursor: pointer; transition: background .25s, border-color .25s;
+        }
+        .branch-card:hover, .branch-card.active {
+            background: rgba(37,99,235,0.06);
+            border-color: rgba(37,99,235,0.3);
+        }
+
+        /* ── Stat counter ────────────────────────────── */
+        .stat-num { font-variant-numeric: tabular-nums; }
+
+        /* ── About image parallax ────────────────────── */
+        .about-img-wrap { overflow: hidden; border-radius: 2px; }
+
+        /* ── ul-link ─────────────────────────────────── */
+        .ul-link { position: relative; display: inline-block; }
+        .ul-link::after {
+            content: ''; position: absolute; bottom: -2px; left: 0;
+            width: 0; height: 1px; background: currentColor;
+            transition: width .3s ease;
+        }
+        .ul-link:hover::after { width: 100%; }
+
+        /* ── GSAP initial state ──────────────────────── */
+        .g-fade { opacity: 0; }
+
+        /* ── Sticky sidebar ─────────────────────────── */
+        @media (min-width: 1024px) { .svc-sticky { position: sticky; top: 8rem; } }
+
+        /* ── Service detail row (alternate layout) ───── */
+        .svc-detail-row { border-top: 1px solid #F0F0F0; }
+        .svc-detail-row:last-child { border-bottom: 1px solid #F0F0F0; }
+    </style>
+</head>
+<body class="font-sans text-primary bg-white antialiased overflow-x-hidden">
+
+<!-- ══════════════════════════════════════════════════════
+     LOADER
+═══════════════════════════════════════════════════════ -->
+<div id="loader">
+    <div>
+        <div id="loader-logo">TRACECOOL</div>
+        <div id="loader-sub">Ingenieur-Gesellschaft mbH</div>
+    </div>
+    <div id="loader-bar"><div id="loader-progress"></div></div>
+</div>
+
+<!-- Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- ══════════════════════════════════════════════════════
+     NAV
+═══════════════════════════════════════════════════════ -->
+<nav class="fixed top-5 left-1/2 -translate-x-1/2 z-50 glass-nav text-white w-[92%] max-w-6xl" id="navbar">
+    <div class="px-5 lg:px-7 py-3 flex justify-between items-center gap-4">
+        <div class="flex flex-col">
+            <a href="#" class="text-xl font-semibold tracking-tight">TRACECOOL</a>
+            <span class="text-[10px] tracking-widest opacity-70">Ingenieur-Gesellschaft mbH</span>
+        </div>
+        <div class="hidden lg:flex space-x-7 text-sm font-medium">
+            <a href="#home"      class="ul-link hover:text-accent transition-colors">Home</a>
+            <a href="#about"     class="ul-link hover:text-accent transition-colors">About</a>
+            <a href="#products"  class="ul-link hover:text-accent transition-colors">Products</a>
+            <a href="#services"  class="ul-link hover:text-accent transition-colors">Services</a>
+            <a href="#projects"  class="ul-link hover:text-accent transition-colors">Projects</a>
+            <a href="#branches"  class="ul-link hover:text-accent transition-colors">Branches</a>
+            <a href="#career"    class="ul-link hover:text-accent transition-colors">Career</a>
+            <a href="#contact"   class="ul-link hover:text-accent transition-colors">Contact</a>
+        </div>
+        <a href="#contact" class="hidden lg:inline-flex items-center gap-3 rounded-full border border-white/30 pl-5 pr-1 py-1 hover:bg-white/10 transition-colors">
+            <span class="text-sm font-medium">Contact Us</span>
+            <span class="bg-accent rounded-full p-2 text-white flex items-center justify-center">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </span>
+        </a>
+        <button class="lg:hidden text-white" id="mobile-menu-btn" aria-label="Open menu">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+        </button>
+    </div>
+    <div id="mobile-menu" class="hidden lg:hidden absolute left-1/2 -translate-x-1/2 top-[calc(100%+10px)] flex-col p-5 space-y-3 text-sm font-medium w-56">
+        <a href="#home"     class="hover:text-accent transition-colors block">Home</a>
+        <a href="#about"    class="hover:text-accent transition-colors block">About</a>
+        <a href="#products" class="hover:text-accent transition-colors block">Products</a>
+        <a href="#services" class="hover:text-accent transition-colors block">Services</a>
+        <a href="#projects" class="hover:text-accent transition-colors block">Projects</a>
+        <a href="#branches" class="hover:text-accent transition-colors block">Branches</a>
+        <a href="#career"   class="hover:text-accent transition-colors block">Career</a>
+        <a href="#contact"  class="hover:text-accent transition-colors block">Contact</a>
+    </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     HERO
+═══════════════════════════════════════════════════════ -->
+<header id="home" class="relative h-screen min-h-[640px] flex items-center hero-bg overflow-hidden">
+    <div class="hero-parallax-bg absolute inset-0 hero-bg" style="transform:scale(1.15);transform-origin:center;"></div>
+    <div class="relative max-w-7xl mx-auto px-6 lg:px-8 w-full z-10 pt-24">
+        <div class="max-w-3xl text-white">
+            <p class="section-label light mb-6 g-fade" id="hero-label">Thermal Engineering Excellence</p>
+            <h1 class="text-5xl md:text-7xl font-medium tracking-tight leading-[1.08] mb-8" id="hero-title">
+                <span class="split-line"><span class="split-inner">Cooling. Engineered</span></span>
+                <span class="split-line"><span class="split-inner">with Confidence.</span></span>
+            </h1>
+            <p class="text-lg md:text-xl font-light mb-10 max-w-2xl leading-relaxed g-fade" id="hero-sub" style="opacity:0">
+                Lebanese thermal engineers delivering precision cooling solutions for industry, infrastructure, and technology — worldwide since 1969.
+            </p>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-6 g-fade" id="hero-cta" style="opacity:0">
+                <a href="#products" class="inline-flex items-center gap-4 rounded-full border border-white/30 pl-6 pr-2 py-2 hover:bg-white/10 transition-colors backdrop-blur-sm">
+                    <span class="font-medium">Our Products</span>
+                    <span class="bg-accent rounded-full p-2.5 text-white flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </span>
+                </a>
+                <a href="#projects" class="inline-flex items-center gap-2 hover:text-accent transition-colors group">
+                    <span>View Projects</span>
+                    <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/40 g-fade" id="hero-scroll" style="opacity:0">
+        <span class="text-[10px] tracking-[.2em] uppercase">Scroll</span>
+        <div class="w-px h-10 bg-white/20 relative overflow-hidden">
+            <div class="w-full h-1/2 bg-accent absolute animate-bounce" style="animation-duration:1.5s"></div>
+        </div>
+    </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════
+     MARQUEE
+═══════════════════════════════════════════════════════ -->
+<div class="bg-accent py-4 marquee-outer text-white">
+    <div class="marquee-track">
+        <span class="marquee-item">HVAC Engineering <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Industrial Process Cooling <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Data Center Thermal Management <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Cold Chain Solutions <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Sustainable Free Cooling <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Geothermal Cooling <span class="marquee-dot"></span></span>
+        <span class="marquee-item">HVAC Engineering <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Industrial Process Cooling <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Data Center Thermal Management <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Cold Chain Solutions <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Sustainable Free Cooling <span class="marquee-dot"></span></span>
+        <span class="marquee-item">Geothermal Cooling <span class="marquee-dot"></span></span>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     TAGLINE + STATS
+═══════════════════════════════════════════════════════ -->
+<section class="py-28 bg-white" id="stats-section">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-24">
+            <h2 class="text-3xl md:text-4xl font-medium max-w-2xl leading-tight g-fade">
+                Precision cooling engineering for critical industries, delivered worldwide.
+            </h2>
+            <div class="mt-8 md:mt-0 g-fade">
+                <a href="#services" class="pill-btn border-gray-300 hover:bg-gray-50">
+                    <span class="text-sm font-medium">Explore Services</span>
+                    <span class="bg-accent rounded-full p-2 text-white flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </span>
+                </a>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 border-t border-gray-200 pt-12">
+            <div class="g-fade">
+                <h2 class="text-5xl md:text-6xl font-medium mb-2 stat-num">
+                    <span class="counter" data-target="55">0</span><span class="text-accent">+</span>
+                </h2>
+                <p class="text-secondary">Years Experience</p>
+            </div>
+            <div class="g-fade">
+                <h2 class="text-5xl md:text-6xl font-medium mb-2 stat-num">
+                    <span class="counter" data-target="1000">0</span><span class="text-accent">+</span>
+                </h2>
+                <p class="text-secondary">Projects Completed</p>
+            </div>
+            <div class="g-fade">
+                <h2 class="text-5xl md:text-6xl font-medium mb-2 stat-num">
+                    <span class="counter" data-target="100">0</span><span class="text-accent">+</span>
+                </h2>
+                <p class="text-secondary">Countries Served</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     ABOUT
+═══════════════════════════════════════════════════════ -->
+<section id="about" class="py-28 bg-surface">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            <div>
+                <span class="section-label mb-5 block">About TRACECOOL</span>
+                <h3 class="text-3xl md:text-4xl font-medium mb-6 leading-snug g-fade">
+                    Engineering the future of industrial cooling since 1969.
+                </h3>
+                <p class="text-secondary mb-6 leading-relaxed g-fade">
+                    TRACECOOL is a privately owned, independent cooling engineering consultancy headquartered in Beirut, Lebanon. Since our foundation, <strong>we have successfully delivered over 1,000 cooling projects across more than 100 countries.</strong>
+                </p>
+                <p class="text-secondary mb-10 leading-relaxed g-fade">
+                    Our interdisciplinary team of mechanical engineers, thermodynamics specialists and energy consultants designs and optimises cooling systems for manufacturing plants, data centres, cold chains and large-scale infrastructure — ensuring reliability, efficiency and sustainability at every scale.
+                </p>
+                <a href="#projects" class="inline-flex items-center gap-3 text-primary font-medium hover:text-gray-500 transition-colors g-fade">
+                    <span class="bg-accent rounded-full p-2 text-white flex items-center justify-center">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </span>
+                    View Projects
+                </a>
+            </div>
+            <div class="about-img-wrap shadow-xl g-fade">
+                <img class="about-img-inner w-full h-[540px] object-cover"
+                     src="https://images.unsplash.com/photo-1581093450021-4a7360e9a6b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=900&q=80"
+                     alt="TRACECOOL engineers reviewing cooling system blueprints">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     PRODUCTS
+═══════════════════════════════════════════════════════ -->
+<section id="products" class="py-28 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-16">
+            <div>
+                <span class="section-label mb-5 block">Products</span>
+                <h2 class="text-4xl md:text-5xl font-medium leading-tight max-w-xl g-fade">
+                    Precision Cooling<br>Equipment
+                </h2>
+            </div>
+            <div class="mt-8 md:mt-0 g-fade">
+                <p class="text-secondary text-sm max-w-xs leading-relaxed">
+                    Purpose-built cooling systems engineered for extreme reliability and energy efficiency — from 10 kW to 50 MW.
+                </p>
+            </div>
+        </div>
+
+        <!-- Product grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+            <!-- 01 -->
+            <div class="prod-card g-fade">
+                <div class="prod-card-img">
+                    <img src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                         alt="TC-Chill 1000 industrial water chiller">
+                </div>
+                <div class="p-7">
+                    <span class="text-accent text-[10px] font-bold uppercase tracking-widest">Water Chiller</span>
+                    <h3 class="text-white text-xl font-medium mt-2 mb-3">TC-Chill 1000</h3>
+                    <p class="text-white/50 text-sm leading-relaxed mb-5">
+                        High-efficiency water-cooled centrifugal chiller for industrial and large commercial applications. COP up to 6.8.
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">100–5,000 kW</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">COP 6.8</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">R-1234ze</span>
+                    </div>
+                    <a href="#contact" class="inline-flex items-center gap-2 text-accent text-sm font-medium hover:gap-3 transition-all duration-200">
+                        Request Datasheet
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 02 -->
+            <div class="prod-card g-fade">
+                <div class="prod-card-img">
+                    <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                         alt="TC-Tower CT Series counterflow cooling tower">
+                </div>
+                <div class="p-7">
+                    <span class="text-accent text-[10px] font-bold uppercase tracking-widest">Cooling Tower</span>
+                    <h3 class="text-white text-xl font-medium mt-2 mb-3">TC-Tower CT Series</h3>
+                    <p class="text-white/50 text-sm leading-relaxed mb-5">
+                        Counterflow fibreglass cooling towers engineered for low noise and minimal drift. Modular for easy site assembly.
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">50–10,000 kW</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">≤45 dB(A)</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">FRP Body</span>
+                    </div>
+                    <a href="#contact" class="inline-flex items-center gap-2 text-accent text-sm font-medium hover:gap-3 transition-all duration-200">
+                        Request Datasheet
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 03 -->
+            <div class="prod-card g-fade">
+                <div class="prod-card-img">
+                    <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                         alt="TC-AHU Pro air handling unit">
+                </div>
+                <div class="p-7">
+                    <span class="text-accent text-[10px] font-bold uppercase tracking-widest">Air Handling</span>
+                    <h3 class="text-white text-xl font-medium mt-2 mb-3">TC-AHU Pro</h3>
+                    <p class="text-white/50 text-sm leading-relaxed mb-5">
+                        Custom modular air handling units with EC fan technology, heat recovery up to 85 %, and MERV 15 filtration.
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">1,000–80,000 m³/h</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">85% HR</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">MERV 15</span>
+                    </div>
+                    <a href="#contact" class="inline-flex items-center gap-2 text-accent text-sm font-medium hover:gap-3 transition-all duration-200">
+                        Request Datasheet
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 04 -->
+            <div class="prod-card g-fade">
+                <div class="prod-card-img">
+                    <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                         alt="TC-HEX Plate brazed plate heat exchanger">
+                </div>
+                <div class="p-7">
+                    <span class="text-accent text-[10px] font-bold uppercase tracking-widest">Heat Exchanger</span>
+                    <h3 class="text-white text-xl font-medium mt-2 mb-3">TC-HEX Plate</h3>
+                    <p class="text-white/50 text-sm leading-relaxed mb-5">
+                        Brazed 316L stainless-steel plate heat exchangers for free cooling, heat recovery and process isolation.
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">10–2,000 kW</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">316L SS</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">Free-Cool Ready</span>
+                    </div>
+                    <a href="#contact" class="inline-flex items-center gap-2 text-accent text-sm font-medium hover:gap-3 transition-all duration-200">
+                        Request Datasheet
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 05 -->
+            <div class="prod-card g-fade">
+                <div class="prod-card-img">
+                    <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                         alt="TC-FreeCool adiabatic free cooler">
+                </div>
+                <div class="p-7">
+                    <span class="text-accent text-[10px] font-bold uppercase tracking-widest">Free Cooling</span>
+                    <h3 class="text-white text-xl font-medium mt-2 mb-3">TC-FreeCool 500</h3>
+                    <p class="text-white/50 text-sm leading-relaxed mb-5">
+                        Adiabatic dry cooler achieving up to 95 % free-cooling hours per year. Intelligent hybrid control for year-round efficiency.
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">100–3,000 kW</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">95% FC Hours</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">EC Fans</span>
+                    </div>
+                    <a href="#contact" class="inline-flex items-center gap-2 text-accent text-sm font-medium hover:gap-3 transition-all duration-200">
+                        Request Datasheet
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 06 -->
+            <div class="prod-card g-fade">
+                <div class="prod-card-img">
+                    <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                         alt="TC-Smart Hub IoT cooling control system">
+                </div>
+                <div class="p-7">
+                    <span class="text-accent text-[10px] font-bold uppercase tracking-widest">Smart Control</span>
+                    <h3 class="text-white text-xl font-medium mt-2 mb-3">TC-Smart Hub</h3>
+                    <p class="text-white/50 text-sm leading-relaxed mb-5">
+                        IoT-enabled cooling management platform with AI-driven optimisation, predictive maintenance alerts, and remote access.
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">BACnet / Modbus</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">AI Optimised</span>
+                        <span class="text-[11px] border border-white/15 text-white/60 rounded-full px-3 py-1">Cloud + Edge</span>
+                    </div>
+                    <a href="#contact" class="inline-flex items-center gap-2 text-accent text-sm font-medium hover:gap-3 transition-all duration-200">
+                        Request Datasheet
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                </div>
+            </div>
+
+        </div><!-- /grid -->
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     SERVICES
+═══════════════════════════════════════════════════════ -->
+<section id="services" class="py-28 bg-surface">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+
+        <!-- Sticky layout: sidebar + cards -->
+        <div class="flex flex-col lg:flex-row gap-20 mb-24">
+
+            <div class="lg:w-1/3 svc-sticky g-fade">
+                <span class="section-label mb-5 block">Services</span>
+                <h2 class="text-4xl font-medium mb-6">Core Fields of Expertise</h2>
+                <p class="text-secondary mb-10 leading-relaxed text-sm">
+                    We deliver thermal engineering and cooling consultancy across five core sectors, combining technical precision with decades of international project experience. Full lifecycle — analysis and design through commissioning and long-term optimisation.
+                </p>
+                <a href="#contact" class="pill-btn border-gray-300 hover:bg-white">
+                    <span class="text-sm font-medium">Request a Consultation</span>
+                    <span class="bg-accent rounded-full p-2 text-white flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </span>
+                </a>
+            </div>
+
+            <div class="lg:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-12 gap-y-16">
+
+                <div class="svc-card g-fade">
+                    <div class="border-t border-gray-200 pt-4 mb-5">
+                        <span class="text-xs text-secondary bg-white px-3 py-1 rounded-full border border-gray-100">01</span>
+                    </div>
+                    <h3 class="text-xl font-medium mb-3">HVAC Systems</h3>
+                    <p class="text-secondary text-sm mb-6 leading-relaxed h-20">Full-lifecycle design and engineering of heating, ventilation and air-conditioning systems for industrial, commercial and institutional facilities.</p>
+                    <div class="overflow-hidden rounded-sm">
+                        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Industrial HVAC units" class="w-full aspect-square object-cover">
+                    </div>
+                </div>
+
+                <div class="svc-card g-fade">
+                    <div class="border-t border-gray-200 pt-4 mb-5">
+                        <span class="text-xs text-secondary bg-white px-3 py-1 rounded-full border border-gray-100">02</span>
+                    </div>
+                    <h3 class="text-xl font-medium mb-3">Industrial Process Cooling</h3>
+                    <p class="text-secondary text-sm mb-6 leading-relaxed h-20">Custom cooling solutions for power generation, chemical processing, steel manufacturing and heavy industry — engineered for 24/7 reliability.</p>
+                    <div class="overflow-hidden rounded-sm">
+                        <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Industrial cooling towers" class="w-full aspect-square object-cover">
+                    </div>
+                </div>
+
+                <div class="svc-card g-fade">
+                    <div class="border-t border-gray-200 pt-4 mb-5">
+                        <span class="text-xs text-secondary bg-white px-3 py-1 rounded-full border border-gray-100">03</span>
+                    </div>
+                    <h3 class="text-xl font-medium mb-3">Data Center Cooling</h3>
+                    <p class="text-secondary text-sm mb-6 leading-relaxed h-20">Precision thermal management for IT infrastructure — server room air-flow optimisation to hyperscale liquid cooling and hot-aisle containment.</p>
+                    <div class="overflow-hidden rounded-sm">
+                        <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Data center server room" class="w-full aspect-square object-cover">
+                    </div>
+                </div>
+
+                <div class="svc-card g-fade">
+                    <div class="border-t border-gray-200 pt-4 mb-5">
+                        <span class="text-xs text-secondary bg-white px-3 py-1 rounded-full border border-gray-100">04</span>
+                    </div>
+                    <h3 class="text-xl font-medium mb-3">Cold Chain & Refrigeration</h3>
+                    <p class="text-secondary text-sm mb-6 leading-relaxed h-20">End-to-end cold storage and refrigeration for food, pharmaceuticals and logistics — designed for energy efficiency and regulatory compliance.</p>
+                    <div class="overflow-hidden rounded-sm">
+                        <img src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Cold storage warehouse" class="w-full aspect-square object-cover">
+                    </div>
+                </div>
+
+                <div class="svc-card g-fade">
+                    <div class="border-t border-gray-200 pt-4 mb-5">
+                        <span class="text-xs text-secondary bg-white px-3 py-1 rounded-full border border-gray-100">05</span>
+                    </div>
+                    <h3 class="text-xl font-medium mb-3">Sustainable Free Cooling</h3>
+                    <p class="text-secondary text-sm mb-6 leading-relaxed h-20">Eco-efficient cooling including geothermal exchange, evaporative free cooling, waste-heat recovery and renewable-powered systems.</p>
+                    <div class="overflow-hidden rounded-sm">
+                        <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Solar panels and cooling plant" class="w-full aspect-square object-cover">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Process steps -->
+        <div class="border-t border-gray-200 pt-20">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-14">
+                <h3 class="text-2xl md:text-3xl font-medium g-fade">How We Work</h3>
+                <p class="text-secondary text-sm max-w-xs mt-4 md:mt-0 g-fade">Every project follows our proven four-phase engineering methodology.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+                <div class="process-step g-fade">
+                    <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white font-semibold text-sm mb-5">01</div>
+                    <h4 class="font-medium mb-2">Site Assessment</h4>
+                    <p class="text-secondary text-sm leading-relaxed">Thermal load analysis, site surveys and feasibility studies to define project scope and performance targets.</p>
+                </div>
+                <div class="process-step g-fade">
+                    <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white font-semibold text-sm mb-5">02</div>
+                    <h4 class="font-medium mb-2">System Design</h4>
+                    <p class="text-secondary text-sm leading-relaxed">Detailed engineering design, hydraulic and thermodynamic modelling, equipment selection and technical specifications.</p>
+                </div>
+                <div class="process-step g-fade">
+                    <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white font-semibold text-sm mb-5">03</div>
+                    <h4 class="font-medium mb-2">Installation & Commissioning</h4>
+                    <p class="text-secondary text-sm leading-relaxed">Project management, installation supervision, system commissioning and performance verification against design targets.</p>
+                </div>
+                <div class="process-step g-fade">
+                    <div class="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white font-semibold text-sm mb-5">04</div>
+                    <h4 class="font-medium mb-2">Optimisation & Support</h4>
+                    <p class="text-secondary text-sm leading-relaxed">Ongoing performance monitoring, predictive maintenance, energy optimisation and lifecycle support contracts.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     PROJECTS
+═══════════════════════════════════════════════════════ -->
+<section id="projects" class="py-28 bg-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-16">
+            <div>
+                <span class="section-label mb-5 block">Portfolio</span>
+                <h2 class="text-4xl font-medium max-w-xl leading-tight g-fade">Featured Projects</h2>
+            </div>
+            <a href="#" class="mt-8 md:mt-0 pill-btn border-gray-300 hover:bg-gray-50 g-fade">
+                <span class="text-sm font-medium">All Projects</span>
+                <span class="bg-accent rounded-full p-2 text-white flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </span>
+            </a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="proj-card rounded-sm g-fade">
+                <img src="https://images.unsplash.com/photo-1513082325166-c105b20254f6?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="BMW Munich plant" class="w-full h-72 lg:h-80 object-cover">
+                <div class="proj-card-overlay"></div>
+                <div class="proj-card-label"><p class="text-xs text-white/60 mb-1">Germany · 2023</p><p class="font-medium text-sm">BMW Munich — Process Cooling</p></div>
+            </div>
+            <div class="proj-card rounded-sm g-fade">
+                <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Frankfurt data hub" class="w-full h-72 lg:h-80 object-cover">
+                <div class="proj-card-overlay"></div>
+                <div class="proj-card-label"><p class="text-xs text-white/60 mb-1">Germany · 2023</p><p class="font-medium text-sm">Frankfurt Data Hub — Liquid Cooling</p></div>
+            </div>
+            <div class="proj-card rounded-sm g-fade">
+                <img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Dubai airport" class="w-full h-72 lg:h-80 object-cover">
+                <div class="proj-card-overlay"></div>
+                <div class="proj-card-label"><p class="text-xs text-white/60 mb-1">UAE · 2022</p><p class="font-medium text-sm">Dubai Airport — HVAC Overhaul</p></div>
+            </div>
+            <div class="proj-card rounded-sm g-fade">
+                <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Rotterdam cold hub" class="w-full h-72 lg:h-80 object-cover">
+                <div class="proj-card-overlay"></div>
+                <div class="proj-card-label"><p class="text-xs text-white/60 mb-1">Netherlands · 2022</p><p class="font-medium text-sm">Rotterdam Cold Hub — Refrigeration</p></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     BRANCHES MAP
+═══════════════════════════════════════════════════════ -->
+<section id="branches" class="py-28 bg-primary text-white">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-14">
+            <div>
+                <span class="section-label light mb-5 block">Global Presence</span>
+                <h2 class="text-4xl md:text-5xl font-medium leading-tight g-fade">10 Offices.<br>4 Continents.</h2>
+            </div>
+            <div class="mt-8 md:mt-0 grid grid-cols-3 gap-8 g-fade">
+                <div>
+                    <p class="text-3xl font-medium">10</p>
+                    <p class="text-white/50 text-xs mt-1 uppercase tracking-wider">Offices</p>
+                </div>
+                <div>
+                    <p class="text-3xl font-medium">4</p>
+                    <p class="text-white/50 text-xs mt-1 uppercase tracking-wider">Continents</p>
+                </div>
+                <div>
+                    <p class="text-3xl font-medium">55<span class="text-accent">+</span></p>
+                    <p class="text-white/50 text-xs mt-1 uppercase tracking-wider">Years Global</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div id="branches-map" class="w-full rounded-sm overflow-hidden g-fade" style="height:480px;"></div>
+
+        <!-- Branch cards -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-8" id="branch-cards">
+
+            <div class="branch-card" data-lat="33.8938" data-lng="35.5018" data-idx="0">
+                <p class="text-accent text-[10px] font-bold uppercase tracking-widest mb-1">HQ</p>
+                <p class="font-medium text-sm">Beirut</p>
+                <p class="text-white/40 text-xs mt-0.5">Lebanon</p>
+            </div>
+            <div class="branch-card" data-lat="52.5200" data-lng="13.4050" data-idx="1">
+                <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Regional</p>
+                <p class="font-medium text-sm">Berlin</p>
+                <p class="text-white/40 text-xs mt-0.5">Germany</p>
+            </div>
+            <div class="branch-card" data-lat="25.2048" data-lng="55.2708" data-idx="2">
+                <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Regional</p>
+                <p class="font-medium text-sm">Dubai</p>
+                <p class="text-white/40 text-xs mt-0.5">United Arab Emirates</p>
+            </div>
+            <div class="branch-card" data-lat="1.3521" data-lng="103.8198" data-idx="3">
+                <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Regional</p>
+                <p class="font-medium text-sm">Singapore</p>
+                <p class="text-white/40 text-xs mt-0.5">Singapore</p>
+            </div>
+            <div class="branch-card" data-lat="40.7128" data-lng="-74.0060" data-idx="4">
+                <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Regional</p>
+                <p class="font-medium text-sm">New York</p>
+                <p class="text-white/40 text-xs mt-0.5">USA</p>
+            </div>
+            <div class="branch-card" data-lat="-1.2921" data-lng="36.8219" data-idx="5">
+                <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Office</p>
+                <p class="font-medium text-sm">Nairobi</p>
+                <p class="text-white/40 text-xs mt-0.5">Kenya</p>
+            </div>
+            <div class="branch-card" data-lat="19.0760" data-lng="72.8777" data-idx="6">
+                <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Office</p>
+                <p class="font-medium text-sm">Mumbai</p>
+                <p class="text-white/40 text-xs mt-0.5">India</p>
+            </div>
+            <div class="branch-card" data-lat="-23.5505" data-lng="-46.6333" data-idx="7">
+                <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Office</p>
+                <p class="font-medium text-sm">São Paulo</p>
+                <p class="text-white/40 text-xs mt-0.5">Brazil</p>
+            </div>
+            <div class="branch-card" data-lat="35.6762" data-lng="139.6503" data-idx="8">
+                <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Office</p>
+                <p class="font-medium text-sm">Tokyo</p>
+                <p class="text-white/40 text-xs mt-0.5">Japan</p>
+            </div>
+            <div class="branch-card" data-lat="-33.8688" data-lng="151.2093" data-idx="9">
+                <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-1">Office</p>
+                <p class="font-medium text-sm">Sydney</p>
+                <p class="text-white/40 text-xs mt-0.5">Australia</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     CAREER
+═══════════════════════════════════════════════════════ -->
+<section id="career" class="py-28 bg-surface overflow-hidden">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            <div>
+                <span class="section-label mb-5 block">Career</span>
+                <h2 class="text-4xl md:text-5xl font-medium mb-6 leading-tight g-fade">
+                    Join a team of<br>world-class engineers.
+                </h2>
+                <p class="text-secondary mb-10 leading-relaxed g-fade">
+                    We are always looking for talented thermal engineers, project managers and sustainability experts to join our growing international team.
+                </p>
+                <a href="#contact" class="pill-btn border-gray-300 hover:bg-white g-fade">
+                    <span class="text-sm font-medium">View Open Positions</span>
+                    <span class="bg-accent rounded-full p-2 text-white flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </span>
+                </a>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white border border-gray-100 rounded-sm p-6 shadow-sm g-fade">
+                    <h4 class="text-xl font-medium mb-2">HVAC<span class="text-accent">.</span></h4>
+                    <p class="text-secondary text-sm">Senior Design Engineer · Beirut, LB</p>
+                </div>
+                <div class="bg-white border border-gray-100 rounded-sm p-6 shadow-sm g-fade">
+                    <h4 class="text-xl font-medium mb-2">Data<span class="text-accent">.</span></h4>
+                    <p class="text-secondary text-sm">Thermal Consultant · Remote</p>
+                </div>
+                <div class="bg-white border border-gray-100 rounded-sm p-6 shadow-sm g-fade">
+                    <h4 class="text-xl font-medium mb-2">PM<span class="text-accent">.</span></h4>
+                    <p class="text-secondary text-sm">Project Manager · Frankfurt, DE</p>
+                </div>
+                <div class="bg-accent rounded-sm p-6 flex flex-col justify-between g-fade">
+                    <p class="text-white font-medium text-sm">18 open<br>positions</p>
+                    <svg class="w-6 h-6 text-white mt-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     CONTACT
+═══════════════════════════════════════════════════════ -->
+<section id="contact" class="py-28 bg-white border-t border-gray-200">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-20">
+            <div>
+                <span class="section-label mb-5 block">Contact</span>
+                <h2 class="text-4xl md:text-5xl font-medium mb-6 leading-tight g-fade">How to<br>Reach Us</h2>
+                <p class="text-secondary leading-relaxed max-w-md mb-10 g-fade">
+                    To discuss a project, request a technical assessment, or explore how TRACECOOL can solve your cooling challenge — our engineering team is ready to help.
+                </p>
+                <div class="space-y-4 g-fade">
+                    <div class="flex items-center gap-3 text-sm text-secondary">
+                        <span class="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-white flex-shrink-0">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        </span>
+                        Achrafieh, Beirut 1100, Lebanon
+                    </div>
+                    <div class="flex items-center gap-3 text-sm text-secondary">
+                        <span class="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-white flex-shrink-0">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        </span>
+                        info@tracecool.com
+                    </div>
+                </div>
+            </div>
+            <div class="g-fade">
+                <form class="space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <input type="text"  placeholder="Name"            class="form-input">
+                        <input type="email" placeholder="Email Address"   class="form-input">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <input type="text"  placeholder="Company*" required class="form-input">
+                        <input type="tel"   placeholder="Phone (optional)"  class="form-input">
+                    </div>
+                    <div class="pt-2">
+                        <textarea placeholder="Describe your project or enquiry" rows="2" class="form-input resize-none"></textarea>
+                    </div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 pt-6">
+                        <label class="flex items-center gap-4 cursor-pointer group">
+                            <input type="checkbox" checked class="custom-checkbox">
+                            <span class="text-sm text-secondary group-hover:text-primary transition-colors">I have read the terms and conditions and agree with them.</span>
+                        </label>
+                        <button type="submit" class="pill-btn border-gray-300 hover:bg-gray-50 flex-shrink-0">
+                            <span class="text-sm font-medium">Send Message</span>
+                            <span class="bg-accent rounded-full p-2 text-white flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════════════ -->
+<footer class="bg-primary text-white py-16">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row justify-between items-start gap-12 mb-12 pb-12 border-b border-white/10">
+            <div class="max-w-xs">
+                <div class="text-2xl font-semibold tracking-tight mb-1">TRACECOOL</div>
+                <div class="text-[10px] tracking-widest text-gray-400 mb-4">Ingenieur-Gesellschaft mbH</div>
+                <p class="text-white/40 text-xs leading-relaxed">Independent Lebanese thermal engineering consultancy. Precision cooling solutions worldwide since 1969.</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-10 text-sm text-gray-400">
+                <div>
+                    <p class="text-white font-medium mb-4 text-xs uppercase tracking-wider">Company</p>
+                    <ul class="space-y-2.5">
+                        <li><a href="#about"    class="hover:text-accent transition-colors">About</a></li>
+                        <li><a href="#branches" class="hover:text-accent transition-colors">Branches</a></li>
+                        <li><a href="#career"   class="hover:text-accent transition-colors">Career</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="text-white font-medium mb-4 text-xs uppercase tracking-wider">Products</p>
+                    <ul class="space-y-2.5">
+                        <li><a href="#products" class="hover:text-accent transition-colors">TC-Chill 1000</a></li>
+                        <li><a href="#products" class="hover:text-accent transition-colors">TC-Tower CT</a></li>
+                        <li><a href="#products" class="hover:text-accent transition-colors">TC-Smart Hub</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="text-white font-medium mb-4 text-xs uppercase tracking-wider">Services</p>
+                    <ul class="space-y-2.5">
+                        <li><a href="#services" class="hover:text-accent transition-colors">HVAC</a></li>
+                        <li><a href="#services" class="hover:text-accent transition-colors">Industrial</a></li>
+                        <li><a href="#services" class="hover:text-accent transition-colors">Data Centers</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="text-white font-medium mb-4 text-xs uppercase tracking-wider">Contact</p>
+                    <ul class="space-y-2.5">
+                        <li><a href="#contact" class="hover:text-accent transition-colors">Get in Touch</a></li>
+                        <li><span class="text-gray-500 text-xs">Beirut, Lebanon</span></li>
+                        <li><span class="text-gray-500 text-xs">info@tracecool.com</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+            <span>&copy; 2026 TRACECOOL Ingenieur-Gesellschaft mbH. All rights reserved.</span>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-accent transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-accent transition-colors">Imprint</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════
+     MOTION ONE — Framer-like spring animations
+═══════════════════════════════════════════════════════ -->
+<script type="module">
+    import { animate, spring, inView } from "https://cdn.jsdelivr.net/npm/motion@10.18.0/+esm";
+
+    /* Product card hover */
+    document.querySelectorAll('.prod-card').forEach(card => {
+        card.addEventListener('mouseenter', () =>
+            animate(card, { y: -6, scale: 1.01 }, { easing: spring({ stiffness: 280, damping: 18 }) }));
+        card.addEventListener('mouseleave', () =>
+            animate(card, { y: 0,  scale: 1    }, { easing: spring({ stiffness: 260, damping: 22 }) }));
+    });
+
+    /* Service card hover */
+    document.querySelectorAll('.svc-card').forEach(card => {
+        card.addEventListener('mouseenter', () =>
+            animate(card, { y: -5 }, { easing: spring({ stiffness: 300, damping: 18 }) }));
+        card.addEventListener('mouseleave', () =>
+            animate(card, { y: 0  }, { easing: spring({ stiffness: 260, damping: 20 }) }));
+    });
+
+    /* Project card hover */
+    document.querySelectorAll('.proj-card').forEach(card => {
+        card.addEventListener('mouseenter', () =>
+            animate(card, { y: -4, scale: 1.01 }, { easing: spring({ stiffness: 280, damping: 18 }) }));
+        card.addEventListener('mouseleave', () =>
+            animate(card, { y: 0,  scale: 1    }, { easing: spring({ stiffness: 260, damping: 22 }) }));
+    });
+
+    /* Pill button press feedback */
+    document.querySelectorAll('.pill-btn, button[type=submit]').forEach(btn => {
+        btn.addEventListener('mouseenter', () => animate(btn, { scale: 1.025 }, { easing: spring({ stiffness: 350, damping: 20 }) }));
+        btn.addEventListener('mouseleave', () => animate(btn, { scale: 1     }, { easing: spring({ stiffness: 300, damping: 24 }) }));
+        btn.addEventListener('mousedown',  () => animate(btn, { scale: 0.97  }, { easing: spring({ stiffness: 400, damping: 18 }) }));
+        btn.addEventListener('mouseup',    () => animate(btn, { scale: 1.025 }, { easing: spring({ stiffness: 350, damping: 20 }) }));
+    });
+
+    /* Branch cards spring in via inView */
+    inView('#branch-cards', () => {
+        document.querySelectorAll('.branch-card').forEach((card, i) => {
+            animate(card,
+                { opacity: [0, 1], y: [20, 0] },
+                { delay: i * 0.06, easing: spring({ stiffness: 280, damping: 20 }), duration: 0.5 }
+            );
+        });
+    }, { amount: 0.1 });
+
+    /* Process steps bounce in */
+    inView('#services .process-step:first-child', () => {
+        document.querySelectorAll('.process-step').forEach((step, i) => {
+            animate(step,
+                { opacity: [0, 1], y: [24, 0] },
+                { delay: i * 0.1, easing: spring({ stiffness: 300, damping: 20 }), duration: 0.55 }
+            );
+        });
+    }, { amount: 0.2 });
+
+    /* Career cards bounce */
+    inView('#career .grid', () => {
+        document.querySelectorAll('#career .grid > div').forEach((card, i) => {
+            animate(card,
+                { opacity: [0, 1], y: [28, 0], scale: [0.95, 1] },
+                { delay: i * 0.08, easing: spring({ stiffness: 280, damping: 20 }), duration: 0.6 }
+            );
+        });
+    }, { amount: 0.2 });
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     GSAP — Scroll animations + Leaflet map
+═══════════════════════════════════════════════════════ -->
+<script>
+    gsap.registerPlugin(ScrollTrigger);
+
+    /* ── Custom cursor ─────────────────────────────────── */
+    const cursor = document.getElementById('cursor');
+    const ring   = document.getElementById('cursor-ring');
+    if (window.innerWidth > 768) {
+        const xC = gsap.quickTo(cursor, 'x', { duration: 0.08, ease: 'none' });
+        const yC = gsap.quickTo(cursor, 'y', { duration: 0.08, ease: 'none' });
+        const xR = gsap.quickTo(ring,   'x', { duration: 0.22, ease: 'power2.out' });
+        const yR = gsap.quickTo(ring,   'y', { duration: 0.22, ease: 'power2.out' });
+        window.addEventListener('mousemove', e => { xC(e.clientX); yC(e.clientY); xR(e.clientX); yR(e.clientY); });
+    } else {
+        cursor.style.display = 'none'; ring.style.display = 'none';
+    }
+
+    /* ── Loader ────────────────────────────────────────── */
+    document.body.style.overflow = 'hidden';
+    gsap.timeline({
+        onComplete: () => {
+            document.getElementById('loader').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            initHero();
+        }
+    })
+    .to('#loader-progress', { width: '100%', duration: 1.2, ease: 'power2.inOut' })
+    .to(['#loader-logo','#loader-sub'], { y: -10, opacity: 0, duration: 0.35, stagger: 0.05, ease: 'power2.in' }, '-=0.1')
+    .to('#loader-bar', { opacity: 0, duration: 0.3 }, '<')
+    .to('#loader',     { yPercent: -100, duration: 0.7, ease: 'power4.inOut' }, '-=0.05');
+
+    /* ── Hero ──────────────────────────────────────────── */
+    function initHero() {
+        gsap.timeline({ defaults: { ease: 'power3.out' } })
+            .to('#hero-title .split-inner', { y: 0, duration: 1.0, stagger: 0.12, ease: 'power4.out' })
+            .to('#hero-label',  { opacity: 1, y: 0, duration: 0.6 }, '<0.2')
+            .to('#hero-sub',    { opacity: 1, y: 0, duration: 0.7 }, '-=0.5')
+            .to('#hero-cta',    { opacity: 1, y: 0, duration: 0.7, ease: 'back.out(1.5)' }, '-=0.4')
+            .to('#hero-scroll', { opacity: 1, duration: 0.5 }, '-=0.2');
+    }
+
+    /* Hero parallax */
+    gsap.to('.hero-parallax-bg', {
+        yPercent: 18, ease: 'none',
+        scrollTrigger: { trigger: '#home', start: 'top top', end: 'bottom top', scrub: true }
+    });
+
+    /* ── Navbar ────────────────────────────────────────── */
+    ScrollTrigger.create({
+        start: 60,
+        onEnter:     () => document.getElementById('navbar').classList.add('scrolled'),
+        onLeaveBack: () => document.getElementById('navbar').classList.remove('scrolled')
+    });
+
+    /* ── Mobile menu ───────────────────────────────────── */
+    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+        const m = document.getElementById('mobile-menu');
+        m.classList.toggle('hidden'); m.classList.toggle('flex');
+    });
+
+    /* ── Generic .g-fade reveals ───────────────────────── */
+    const revealSections = ['#stats-section','#about','#products','#services','#projects','#branches','#career','#contact'];
+    revealSections.forEach(sec => {
+        document.querySelectorAll(sec + ' .g-fade').forEach((el, i) => {
+            gsap.fromTo(el,
+                { opacity: 0, y: 36 },
+                { opacity: 1, y: 0, duration: 0.75, delay: i * 0.06, ease: 'power3.out',
+                  scrollTrigger: { trigger: el, start: 'top 88%', once: true } }
+            );
+        });
+    });
+
+    /* ── Counters ──────────────────────────────────────── */
+    document.querySelectorAll('.counter').forEach(el => {
+        const target = +el.dataset.target;
+        ScrollTrigger.create({
+            trigger: el, start: 'top 85%', once: true,
+            onEnter: () => {
+                gsap.fromTo(el,
+                    { innerText: 0 },
+                    {
+                        innerText: target, duration: 1.6, ease: 'power2.out',
+                        snap: { innerText: target >= 1000 ? 10 : 1 },
+                        onUpdate() {
+                            el.innerText = target >= 1000
+                                ? Math.round(+el.innerText).toLocaleString('de-DE')
+                                : Math.round(+el.innerText);
+                        }
+                    }
+                );
+            }
+        });
+    });
+
+    /* ── About image parallax ──────────────────────────── */
+    gsap.to('.about-img-inner', {
+        yPercent: -6, ease: 'none',
+        scrollTrigger: { trigger: '#about', start: 'top bottom', end: 'bottom top', scrub: 1 }
+    });
+
+    /* ── Product cards stagger ─────────────────────────── */
+    gsap.fromTo('.prod-card',
+        { opacity: 0, y: 44, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.65, ease: 'back.out(1.4)', stagger: 0.08,
+          scrollTrigger: { trigger: '#products .grid', start: 'top 82%', once: true } }
+    );
+
+    /* ── Service cards stagger ─────────────────────────── */
+    gsap.fromTo('.svc-card',
+        { opacity: 0, y: 40 },
+        { opacity: 1, y: 0, duration: 0.7, ease: 'back.out(1.4)', stagger: 0.1,
+          scrollTrigger: { trigger: '#services .grid', start: 'top 80%', once: true } }
+    );
+
+    /* ── Project cards stagger ─────────────────────────── */
+    gsap.fromTo('.proj-card',
+        { opacity: 0, y: 50, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.65, ease: 'back.out(1.3)', stagger: 0.1,
+          scrollTrigger: { trigger: '#projects .grid', start: 'top 82%', once: true } }
+    );
+
+    /* ── Footer ────────────────────────────────────────── */
+    gsap.fromTo('footer',
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out',
+          scrollTrigger: { trigger: 'footer', start: 'top 92%', once: true } }
+    );
+
+    /* ── Refresh after fonts ───────────────────────────── */
+    document.fonts.ready.then(() => ScrollTrigger.refresh());
+
+    /* ══════════════════════════════════════════════════
+       LEAFLET MAP
+    ══════════════════════════════════════════════════ */
+    const branches = [
+        { name: 'Beirut',    country: 'Lebanon',          type: 'Headquarters', lat:  33.8938, lng:  35.5018 },
+        { name: 'Berlin',    country: 'Germany',         type: 'Regional Office', lat: 52.5200, lng:  13.4050 },
+        { name: 'Dubai',     country: 'United Arab Emirates', type: 'Regional Office', lat: 25.2048, lng: 55.2708 },
+        { name: 'Singapore', country: 'Singapore',       type: 'Regional Office', lat:  1.3521, lng: 103.8198 },
+        { name: 'New York',  country: 'USA',             type: 'Regional Office', lat: 40.7128, lng: -74.0060 },
+        { name: 'Nairobi',   country: 'Kenya',           type: 'Office',       lat: -1.2921, lng:  36.8219 },
+        { name: 'Mumbai',    country: 'India',           type: 'Office',       lat: 19.0760, lng:  72.8777 },
+        { name: 'São Paulo', country: 'Brazil',          type: 'Office',       lat: -23.5505, lng: -46.6333 },
+        { name: 'Tokyo',     country: 'Japan',           type: 'Office',       lat: 35.6762, lng: 139.6503 },
+        { name: 'Sydney',    country: 'Australia',       type: 'Office',       lat: -33.8688, lng: 151.2093 },
+    ];
+
+    // Init map only when section enters viewport (saves bandwidth)
+    let mapInitialised = false;
+    ScrollTrigger.create({
+        trigger: '#branches-map',
+        start: 'top 90%',
+        once: true,
+        onEnter: () => {
+            if (mapInitialised) return;
+            mapInitialised = true;
+
+            const map = L.map('branches-map', {
+                center: [20, 15],
+                zoom: 2,
+                zoomControl: true,
+                scrollWheelZoom: false,
+                attributionControl: true
+            });
+
+            // Dark CartoDB tiles
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd', maxZoom: 19
+            }).addTo(map);
+
+            // Custom marker icon
+            function makeIcon(isHQ) {
+                return L.divIcon({
+                    html: `<div class="tc-marker-wrap">
+                               <div class="tc-ring" style="${isHQ ? 'animation-duration:1.4s;' : ''}"></div>
+                               <div class="tc-dot" style="${isHQ ? 'background:#2563EB;width:13px;height:13px;' : ''}"></div>
+                           </div>`,
+                    className: '',
+                    iconSize:   [20, 20],
+                    iconAnchor: [10, 10],
+                    popupAnchor:[0, -14]
+                });
+            }
+
+            // Add markers + popups
+            const markers = branches.map((b, i) => {
+                const isHQ = i === 0;
+                const marker = L.marker([b.lat, b.lng], { icon: makeIcon(isHQ) })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div style="min-width:160px">
+                            <p style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#2563EB;margin-bottom:4px">${b.type}</p>
+                            <p style="font-size:15px;font-weight:500;color:#fff;margin-bottom:2px">${b.name}</p>
+                            <p style="font-size:12px;color:rgba(255,255,255,0.45)">${b.country}</p>
+                        </div>
+                    `, { closeButton: false });
+                return marker;
+            });
+
+            // Branch card click → fly to + open popup
+            document.querySelectorAll('.branch-card').forEach((card, i) => {
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.branch-card').forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+                    const b = branches[i];
+                    map.flyTo([b.lat, b.lng], 5, { duration: 1.2 });
+                    markers[i].openPopup();
+                });
+                // Highlight on hover
+                card.addEventListener('mouseenter', () => markers[i].openPopup());
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
