@@ -1041,8 +1041,8 @@
         class="sticky top-0 h-screen min-h-[580px] flex items-center overflow-hidden" style="background:#071525; z-index:0;">
 
         <!-- Video background -->
-        <video id="hero-video" class="absolute inset-0 w-full h-full object-cover" muted playsinline autoplay>
-            <source src="1.mp4" type="video/mp4">
+        <video id="hero-video" class="absolute inset-0 w-full h-full object-cover" playsinline autoplay loop muted>
+            <source src="2.mp4" type="video/mp4">
         </video>
 
         <!-- Dark gradient overlay (same as original) -->
@@ -1053,16 +1053,73 @@
             style="background-image: linear-gradient(rgba(77,158,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(77,158,255,0.5) 1px, transparent 1px); background-size: 60px 60px;">
         </div>
 
+        <!-- Sound toggle button -->
+        <button id="sound-toggle" onclick="toggleSound()"
+            title="Toggle sound"
+            style="position:absolute; bottom:2rem; right:2rem; z-index:20; width:44px; height:44px; border-radius:50%; background:rgba(7,21,37,0.6); border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(12px); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background 0.25s, border-color 0.25s;"
+            onmouseenter="this.style.background='rgba(26,111,219,0.55)'; this.style.borderColor='rgba(77,158,255,0.6)'"
+            onmouseleave="this.style.background='rgba(7,21,37,0.6)'; this.style.borderColor='rgba(255,255,255,0.2)'">
+            <!-- Sound ON icon -->
+            <svg id="icon-sound-on" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+            <!-- Sound OFF icon -->
+            <svg id="icon-sound-off" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px; display:none;">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="9" x2="17" y2="15"/>
+                <line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+        </button>
+
         <script>
             (function () {
-                var videos = ['1.mp4', '2.mp4'];
-                var idx = 0;
-                var v = document.getElementById('hero-video');
-                v.addEventListener('ended', function () {
-                    idx = (idx + 1) % videos.length;
-                    v.src = videos[idx];
-                    v.play();
+                var video = document.getElementById('hero-video');
+                window._soundOn = true;
+                var _unlocked = false;
+
+                function setIconState(on) {
+                    document.getElementById('icon-sound-on').style.display = on ? 'block' : 'none';
+                    document.getElementById('icon-sound-off').style.display = on ? 'none' : 'block';
+                }
+
+                function enableSound() {
+                    if (_unlocked) return;
+                    _unlocked = true;
+                    ['click','keydown','touchstart','pointerdown','scroll'].forEach(function(ev) {
+                        document.removeEventListener(ev, enableSound);
+                    });
+                    if (window._soundOn) {
+                        video.muted = false;
+                    }
+                }
+
+                // Register BEFORE play() — avoids async race condition
+                ['click','keydown','touchstart','pointerdown','scroll'].forEach(function(ev) {
+                    document.addEventListener(ev, enableSound, { passive: true });
                 });
+
+                setIconState(true);
+
+                // Must start muted for browser autoplay policy
+                video.muted = true;
+                video.play().catch(function () {});
+
+                // Keep video playing across tab switches
+                document.addEventListener('visibilitychange', function () {
+                    if (!document.hidden && video.paused) video.play().catch(function () {});
+                });
+                setInterval(function () {
+                    if (!document.hidden && video.paused) video.play().catch(function () {});
+                }, 300);
+
+                window.toggleSound = function () {
+                    _unlocked = true;
+                    window._soundOn = !window._soundOn;
+                    video.muted = !window._soundOn;
+                    setIconState(window._soundOn);
+                };
             })();
         </script>
 
